@@ -1,0 +1,9 @@
+# inventories/host.yaml
+---
+minha_maquina_remota:
+  hosts:
+    ubuntu_caio:
+      ansible_host: 192.168.15.7
+      ansible_port: 22
+      ansible_user: caio-silveira
+      ansible_ssh_pass: "{{ remote_user_pass }}"

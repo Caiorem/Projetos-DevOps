@@ -1,10 +1,11 @@
 ---
 - name: Preparar maquina para rodar aplicacao web com Docker
   hosts: all
-  become: yes
+  become: yes #Precisa ser executado como root
   vars:
     git_repo: "https://github.com/Caiorem/websbaby.git"
     app_directory: "/opt/seu-projeto"
+    app_subdir: "test_docker"  
     docker_image_name: "minha-aplicacao:latest"
     container_name: "minha-aplicacao-web"
     app_port: "8080:80"
@@ -70,7 +71,7 @@
       community.docker.docker_image:
         name: "{{ docker_image_name }}"
         build:
-          path: "{{ app_directory }}/aula01"
+          path: "{{ app_directory }}/{{ app_subdir }}"
         source: build
 
     - name: Parar e remover o container se ele ja existir
