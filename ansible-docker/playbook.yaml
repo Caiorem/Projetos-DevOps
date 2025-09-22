@@ -1,0 +1,89 @@
+---
+- name: Preparar maquina para rodar aplicacao web com Docker
+  hosts: all
+  become: yes
+  vars:
+    git_repo: "https://github.com/Caiorem/websbaby.git"
+    app_directory: "/opt/seu-projeto"
+    docker_image_name: "minha-aplicacao:latest"
+    container_name: "minha-aplicacao-web"
+    app_port: "8080:80"
+
+  tasks:
+    - name: Atualizar cache de pacotes
+      ansible.builtin.apt:
+        update_cache: yes
+      when: ansible_distribution == "Ubuntu" or ansible_distribution == "Debian"
+
+    - name: Instalar dependencias do Docker
+      ansible.builtin.apt:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - apt-transport-https
+        - ca-certificates
+        - curl
+        - gnupg-agent
+        - software-properties-common
+      when: ansible_distribution == "Ubuntu" or ansible_distribution == "Debian"
+
+    - name: Adicionar chave GPG oficial do Docker
+      ansible.builtin.apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+      when: ansible_distribution == "Ubuntu" or ansible_distribution == "Debian"
+
+    - name: Adicionar o repositorio do Docker
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+      when: ansible_distribution == "Ubuntu" or ansible_distribution == "Debian"
+
+    - name: Instalar Docker
+      ansible.builtin.apt:
+        name: docker-ce
+        state: present
+
+    - name: Instalar Docker-Compose
+      get_url:
+        url: https://github.com/docker/compose/releases/download/1.29.2/docker-compose-Linux-x86_64
+        dest: /usr/local/bin/docker-compose
+        mode: '0755'
+
+    - name: Iniciar o servico do Docker
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Garantir que o diretorio da aplicacao existe
+      ansible.builtin.file:
+        path: "{{ app_directory }}"
+        state: directory
+
+    - name: Clonar o repositorio Git da aplicacao
+      ansible.builtin.git:
+        repo: "{{ git_repo }}"
+        dest: "{{ app_directory }}"
+
+    - name: Construir a imagem Docker a partir do subdiretorio
+      community.docker.docker_image:
+        name: "{{ docker_image_name }}"
+        build:
+          path: "{{ app_directory }}/aula01"
+        source: build
+
+    - name: Parar e remover o container se ele ja existir
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        state: absent
+        force_kill: yes
+
+    - name: Rodar a aplicacao web em um container
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        image: "{{ docker_image_name }}"
+        state: started
+        ports:
+          - "{{ app_port }}"
+        restart_policy: always

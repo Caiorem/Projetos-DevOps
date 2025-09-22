@@ -1,0 +1,2 @@
+[minha_maquina_remota]
+192.168.15.7 ansible_port=24
